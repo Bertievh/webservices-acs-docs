@@ -25,6 +25,10 @@ Items defined in red are required values.
     - In the **NetCom** field enter **\<Default\>** or a Netcom or Relay name.
     - Select **ACS AzureWebservices Settings**
     - The **Azure URL** field contains a default value ***azure.status.microsoft/en-us/status*** which is used as a heartbeat to check if the Azure environment is available. 
+    - In the **OpCon URL** field, enter the address:port of the hots OpCon System.
+    - In the **OpCon Token** field, enter a token thath will be used to authenticate to the host OpCon system when using the OpCon Rest-API to create / update properties.
+    - in the **Retain Log files** field enter the number of days to retain log files (default 30).
+    - If debug required, select the **Debug Mode** checkbox. 
 6.  Save the definition changes. 
 7.  Select **Communications Settings**
     - ensure that **Requires XML Escape Sequences:User-Defined** field is set to **True**.
@@ -39,14 +43,15 @@ JobType                | Description
 -----------------------|------------
 GetOAuth2Token         | Get an OAuth2 token 
 GetPatToken            | Create a Azure DevOps authentication token using a PAT (Personal Access Token)
+GetKeyVaultValue       | Retrieves information about secrets, keys or certificates from the Azure Keyvault.
 RunDevOpsPipeline      | Starts an Azure DevOps pipeline and monitors for completion
 RunDataFactoryPipeline | Starts an MS DataFactory pipeline and monitors for completion
 DownloadBlobStorage    | Download a file from Azure Blob Storage
 UploadBlobStorage      | Upload a file to Azure Blob Storage
 
-Before defining a **RunDevOpsPipeline** task, a **GetPatToken** task must be defined to create the authorization token required by the RunDevOpsPipeline Task. Similarly before defining the **DownloadBlobStorage** or **UploadBlobStorage** tasks a **GetOAuth2Token** must be defines to create the autherization task required by the DownloadBlobStorage and UploadBlobStorage tasks.
+Before defining a **RunDevOpsPipeline** task, a **GetPatToken** task must be defined to create the authorization token required by the RunDevOpsPipeline Task. Similarly before defining the **GetKeyVaultValue**, **RunDataFactoryPipeline**, **DownloadBlobStorage** or **UploadBlobStorage** tasks a **GetOAuth2Token** must be defined to create the authorization task required by the GetKeyVaultValue, RunDataFactoryPipeline, DownloadBlobStorage and UploadBlobStorage tasks.
 
-The generated authentication tasks (GetPatToken, GetOAuth2Token) store the generated token as schedule instance properties of the schedule. These properties are then available for subsequent tasks in the schedule. 
+The generated authentication tasks (GetPatToken, GetOAuth2Token) store the generated token as schedule instance properties of the schedule or within OpCon properties. These properties are then available for subsequent tasks in the schedule. 
 
 ### GetOAuth2Token Task
 
@@ -74,12 +79,14 @@ Enter details for Task Type **GetOAuth2Token**.
     - In the **Key** field enter the key created during the Azure Application registration process.
     - In the **Resource** field, enter the storage resource containing the storage account name (i.e. https://storage-account.blob.core.windows.net).
     - Select ***client_credentials*** from the drop-down list of the **Grant Type** field.
+    - In the **OpCon Property**  field enter a property name that will be used to store the token. It is possible to use instance properties provided the full path is used. 
  4. In the **Request** section enter the following information
     - Select ***application/x-www-form-urlencoded*** from the **Content** the drop-down list.
 
 ![Defining a GetOAuth2Token Master Job](../static/img/azure-ws-getaoauth2token-master-job2.png)
 
- 5.  In the **Response** section enter the following information
+ 5. If OpCon properties are not being used, use the Response section to store the token in the schedule for futire use.  
+    In the **Response** section enter the following information
     - Select ***application/json*** from the **Content** the drop-down list.
     - In the **Response Variable** section, define the variable that will contain the OAuth2 token. The format is name=value where the name part will be the schedule instance property name, the value part is ignored.  
 
@@ -98,13 +105,46 @@ The GetPatToken task is used to set a PAT token as a schedule instance property 
     - In the **Name** field enter a unique name for the task within the schedule.
     - Select **ACS AzureWebservices** from the **Job Type** drop-down list.
     - Select **GetPatToken** from the **Task Type** drop-down list.
-    
+
 Enter details for Task Type **GetPatToken**. 
 
 1.  Select the **Task Details** button.
 2.  In the **Integration Selection** section, select the primary integration which is an ACS AzureWebservices connection previously defined.
-3.  In the **Authentication** section, enter a PAT (Personal Action Token) retrieved from the Azure DevOps environment (see https://learn.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=Windows for information on how to create a PAT).
-4.  In the **Response Variable** section, define the variable that will contain the PAT token. The format is name=value where the name part will be the schedule instance property name, the value part is ignored. 
+3.  In the **Authentication** section 
+    - enter a PAT (Personal Action Token) retrieved from the Azure DevOps environment (see https://learn.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=Windows for information on how to create a PAT).
+    - In the **OpCon Property**  field enter a property name that will be used to store the token. It is possible to use instance properties provided the full path is used. 
+4.  If OpCon properties are not being used, in the **Response Variable** section, define the variable that will contain the PAT token. The format is name=value where the name part will be the schedule instance property name, the value part is ignored. 
+
+### GetKeyVaultValue Task
+
+The GetKeyVaultValue task is used to retrieve secret, key or certificate information from an Azure KeyVault and store the result in opCon properties.
+
+![Defining a GetKeyVaultValue Master Job](../static/img/azure-ws-getkeyvaultvalue-master-job.png)
+
+1.  Open Solution Manager.
+2.  From the Home page select **Library**
+3.  From the ***Administration*** Menu select **Master Jobs**.
+4.  Select **+Add** to add a new master job definition.
+5.  Fill in the task details.
+    - Select the **Schedule** name from the drop-down list.
+    - In the **Name** field enter a unique name for the task within the schedule.
+    - Select **ACS AzureWebservices** from the **Job Type** drop-down list.
+    - Select **GeKeyVaultValue** from the **Task Type** drop-down list.
+
+Enter details for Task Type **GetKeyVaultValue**. 
+
+1.  Select the **Task Details** button.
+2.  In the **Integration Selection** section, select the primary integration which is an ACS AzureWebservices connection previously defined.
+3.  In the **Job Configuration** section enter the following information
+    - In the **Vault Url** field enter the address of the Azure Keyvault.
+    - In the **Type** field select the key vault type from the drop-down list (secret, key or certificate).
+    - In the **Name** field enter the name of the required key vault item.
+    - In the **version** field enter the version of the key or certificate required. If no version is sentered, the latest entry will be retrieved.
+    - If the Selected Type is key or certifcate, in the **Attribute** field select the attribute information that should be returned.
+      key attributes : **Key.kid, Key.kty, Key.D, Key.Dp, Key.Dq, Key.E, Key.K, Key.N, Key.P, Key.Q, Key.Qi, Key.X, Key.Y**.
+      certificate attributes **Cert.kid, Cert.sid, Cert.x5t, Cert.cer**.
+    - In the **OpCon Property**  field enter a property name that will be used to store the token. It is possible to use instance properties provided the full path is used. 
+    - In the **Header Attributes** section, add an ***Authorization=name*** where the name portion is either the OpCon Property Name or the name portion assigned of a response variable that contains the OAuth2 token in a previous GetOAuth2Token task.
 
 ### RunDevOpsPipeline Task
 
@@ -134,7 +174,7 @@ Enter details for Task Type **RunDevOpsPipeline**. Fields marked in red must be 
     - In the **Pipeline Name** field, enter the name of the DevOps pipeline to execute. 
 4.  In the **Request** section enter the following information
     - Select the **Content** from the drop-down list.
-    - In the **Header Attributes** section, add an ***Authorization=name*** where the name portion is the name portion assigned to contain the PAT token in a previous GetPatToken task.
+    - In the **Header Attributes** section, add an ***Authorization=name*** where the name portion is either the OpCon Property Name or the name portion assigned of a response variable that contains the PAT token in a previous GetPatToken task.
 5.  In the **Response** section enter the following information
     - Select the **Content** from the drop-down list.
     - In the **Response Variables** section a variable can be defined to contain data extracted from the returned JSON data. The
@@ -178,7 +218,7 @@ Enter details for Task Type **RunDataFactoryPipeline**. Fields marked in red mus
 
 4.  In the **Request** section enter the following information
     - Select the **Content** from the drop-down list (application/json).
-    - In the **Header Attributes** section, add an ***Authorization=name*** where the name portion is the name portion assigned to contain the OAuth2 token in a previous GetOAuth2Token task.
+    - In the **Header Attributes** section, add an ***Authorization=name*** where the name portion is either the OpCon Property Name or the name portion assigned of a response variable that contains the OAuth2 token in a previous GetOAuth2Token task. 
 
 For Pipeline recovery purposes, the **Pipeline Recovery** section can be used to restart a Pipeline.
 - Select the **Recovery** checkbox and then configure the recovery options.
@@ -214,7 +254,7 @@ Enter details for Task Type **UploadBlobStorage**. Fields marked in red must be 
     - In the **Filename** field enter the name of the file to create. Please note that the file location is relative to the system where the plugin is installed.
 4.  In the **Request** section enter the following information
     - Select the **Content** from the drop-down list.
-    - In the **Header Attributes** section, add an ***Authorization=name*** where the name portion is the name portion assigned to contain the OAuth2 token in a previous GetOAuth2Token task.
+    - In the **Header Attributes** section, add an ***Authorization=name*** where the name portion is either the OpCon Property Name or the name portion assigned of a response variable that contains the OAuth2 token in a previous GetOAuth2Token task. 
 
 ### UploadStorageBlob Task
 
@@ -244,4 +284,4 @@ Enter details for Task Type **UploadBlobStorage**. Fields marked in red must be 
     - In the **Filename** field enter the name of the file to upload. Please note that the file location is relative to the system where the plugin is installed.
 4.  In the **Request** section enter the following information
     - Select the **Content** from the drop-down list.
-    - In the **Header Attributes** section, add an ***Authorization=name*** where the name portion is the name portion assigned to contain the OAuth2 token in a previous GetOAuth2Token task.
+    - In the **Header Attributes** section, add an ***Authorization=name*** where the name portion is either the OpCon Property Name or the name portion assigned of a response variable that contains the OAuth2 token in a previous GetOAuth2Token task. 
