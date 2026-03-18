@@ -5,7 +5,7 @@ sidebar_label: 'WebServices ACS'
 # WebServices ACS Documentation
 
 Latest version for ACS WebServices is 25.0.0.
-Latest version for ACS AzureWebServices is 25.0.1.
+Latest version for ACS AzureWebServices is 25.0.3.
 
 ACS WebServices provides direct Rest-API access to applications without the need for the installation of additional components.
 It is part of the ACS (Agentless Connector System) suite of products. 
